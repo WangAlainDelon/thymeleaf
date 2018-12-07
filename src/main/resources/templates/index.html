@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Title</title>
+    <h3 class="page-title">
+        Echarts 展示 <small>可视化图表</small>
+    </h3>
+    <script type="text/javascript" src="js/echarts.common.min.js"></script>
+    <script type="text/javascript" src="js/showChart.js"></script>
+    <script type="text/javascript" src = "js/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript">
+        $(function () {
+
+            //加载下拉框的ip
+            $.get("/index/data",function(data){
+                //请求到的data是一个js数组的json串,形如:
+                for(var i=0;i<data.length;i++){
+                    //先创建好select里面的option元素
+                    var option=document.createElement("option");
+                    //添加属性
+                    option.setAttribute("id","option-"+i);
+                    //转换DOM对象为JQ对象,好用JQ里面提供的方法 给option的value赋值
+                    $(option).val(data[i]);
+                    //给option的text赋值,这就是你点开下拉框能够看到的东西
+                    $(option).text(data[i]);
+                    //获取select 下拉框对象,并将option添加进select
+                    $('#iplist').append(option);
+                }
+                //默认选中一个拉框的值
+                $("#option-0").attr("selected",true);
+                $("#option-0").change();
+            });
+        });
+    </script>
+
+</head>
+<body>
+<div class="row">
+    <select id="iplist" class="h32Select w250">
+    </select>
+    <div class="col-lg-6 col-sm-12 col-xs-12 col-sm-12">
+        <p>图1</p>
+        <div id="showChart" style="width:100%;height:600px;margin-left:0px;margin-right:6px;margin-bottom:8px;float:left;overflow:hidden;"></div>
+    </div>
+
+    <div class="col-lg-6 col-sm-12 col-xs-12 col-sm-12">
+        <p>图2</p>
+        <div id="showFunnelChart" style="width:100%;height:600px;margin-left:0px;margin-right:6px;margin-bottom:8px;float:left;overflow:hidden;"></div>
+    </div>
+</div>
+<script type="text/javascript">
+    //给下拉框绑定点击事件
+    $("#iplist").change(function(){
+        //添加所需要执行的操作代码
+        //拿到选中的下拉框的值
+        //var ip=$(this).children('option:selected').val();
+        var ip=1;
+        $.ajax({
+            type : 'post',
+            async : false, //同步执行
+            url :'/load/nodedata', //web.xml中注册的Servlet的url-pattern
+            data : {"ip":ip}, //ip
+            dataType : 'json', //返回数据形式为json
+            success : function(result) {
+                if (result) {
+                    //把result(即Json数据)以参数形式放入Echarts代码中
+                   /* alert(result.msg);*/
+                    /*var json = JSON.parse(result);*/
+                   /* var jsonmsg = JSON.parse(json.msg);
+                    var jsonip=JSON.parse(json.ipjsonstring);*/
+                    /*alert(json.msg);*/
+                   bind(result);
+                }
+            },
+            error : function(errorMsg) {
+                alert("加载数据失败");
+            }
+        }); //ajax
+    })
+    //JS成功后的代码
+    function bind(result){
+        // 基于准备好的dom，初始化echarts图表
+        var myChart1 = echarts.init(document.getElementById('showChart'));
+        var myChart2 = echarts.init(document.getElementById('showFunnelChart'));
+     /*   var myChart3 = echarts.init(document.getElementById('chartsDisk'));
+        var myChart4 = echarts.init(document.getElementById('chartsPublic'));*/
+        var option1 = {
+            tooltip: {
+                trigger: 'item',
+                formatter: "{a} <br/>{b} : {c} ({d}%)"
+            },
+            legend: {
+                data: ['已使用', '剩余'],
+            },
+            calculable: true,
+            color: ['#d28c31', '#2f4554'],
+            series: [
+                {
+                    name: 'CPU使用率',
+                    type: 'pie',
+                    radius: '55%',
+                    center: ['48%', '57%'],
+                    data: [
+                        {value: result.msg, name: '已使用', backgoundColor: '#ccc'},
+                        {value:  result.msg, name: '剩余'},
+                    ],
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+                        normal: {
+                            label: {
+                                show: true,
+                                formatter: '{b} :{c}'
+                            },
+                            labelLine: {show: true}
+                        }
+                    }
+                }
+            ]
+        };
+        var option2 = {
+            tooltip: {
+                trigger: 'item',
+                formatter: "{a} <br/>{b} : {c} ({d}%)"
+            },
+            legend: {
+                data: ['已使用', '剩余']
+            },
+            calculable: true,
+            color: ['#da3838', '#2f4554'],
+            series: [
+                {
+                    name: '内存容量',
+                    type: 'pie',
+                    radius: '55%',
+                    center: ['48%', '57%'],
+                    data: [
+                        {value:  result.data, name: '已使用'},
+                        {value: result.msg, name: '剩余'},
+                    ],
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+                        normal: {
+                            label: {
+                                show: true,
+                                formatter: '{b} :{c}G'
+                            },
+                            labelLine: {show: true}
+                        }
+                    }
+                }
+            ]
+        };
+        /*var option3 = {
+            tooltip: {
+                trigger: 'item',
+                formatter: "{a} <br/>{b} : {c} ({d}%)"
+            },
+            legend: {
+                data: ['已使用', '剩余']
+            },
+            calculable: true,
+            color: ['#c93fa0', '#2f4554'],
+            series: [
+                {
+                    name: '系统盘容量',
+                    type: 'pie',
+                    radius: '55%',
+                    center: ['48%', '57%'],
+                    data: [
+                        {value: jsonmsg.disk_sys_used.toFixed(2), name: '已使用'},
+                        {value: (jsonmsg.disk_sys_total-jsonmsg.disk_sys_used).toFixed(2), name: '剩余'},
+                    ],
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+                        normal: {
+                            label: {
+                                show: true,
+                                formatter: '{b} :{c}G'
+                            },
+                            labelLine: {show: true}
+                        }
+                    }
+                }
+            ]
+        };
+        var option4 = {
+            title: {
+                text: '公网IP',
+                x: 'center'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: "{a} <br/>{b} : {c} ({d}%)"
+            },
+            legend: {
+                orient: 'vertical',
+                x: '30',
+                y: '0',
+                data: ['已使用', '剩余']
+            },
+            calculable: true,
+            color: ['#31bbc4', '#2f4554'],
+            series: [
+                {
+                    name: '公网IP',
+                    type: 'pie',
+                    radius: '55%',
+                    center: ['48%', '54%'],
+                    data: [
+                        {value: jsonip.alreadyUsedNum, name: '已使用'},
+                        {value: jsonip.surplusNum, name: '剩余'},
+                    ],
+                    itemStyle: {
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        },
+                        normal: {
+                            label: {
+                                show: true,
+                                formatter: '{b} :{c}个'
+                            },
+                            labelLine: {show: true}
+                        }
+                    }
+                }
+            ]
+        };*/
+        // 为echarts对象加载数据
+        myChart1.setOption(option1);
+        myChart2.setOption(option2);
+       /* myChart3.setOption(option3);
+        myChart4.setOption(option4);*/
+    }
+</script>
+</body>
+</html>
+
+
+
+
+
