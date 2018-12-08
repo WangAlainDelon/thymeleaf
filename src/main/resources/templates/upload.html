@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Title</title>
@@ -7,10 +8,15 @@
        异步文件上传功能
     </h3>
     <style type="text/css">
+       /* .processbar{
+            background-color: #56BE64;
+            color: black;
+        }*/
         progress {
             background-color: #56BE64;
         }
         progress::-webkit-progress-bar {
+            /* 没有完成的进度条：灰色*/
             background: #ccc;
         }
         progress::-webkit-progress-value {
@@ -20,6 +26,7 @@
             position: fixed;
             left: 160px;
         }
+
     </style>
     <script type="text/javascript" src = "js/jquery-1.8.3.min.js"></script>
     <script>
@@ -47,41 +54,52 @@
                         $("#msg").text("访问服务器错误，请重试！");
                     },
                     success: function(result){
+                        alert(result.toString());
                         console.log("success");
+                        if(result.toString()=="ok")
+                        {
+                            alert("重新加载页面包含上传文件");
+                            window.location.reload();
+                            //定时器实时拿到数据percent更新到进度条
+                            //循环执行，每隔60-150秒钟执行一次showMsgIcon()
+                            window.setInterval(showProgress, 100);
+
+                        }
                     },
+                    //上传过程中执行的步骤
                     xhr: function () {
                         var xhr = $.ajaxSettings.xhr();
                         if (xhr.upload) {
                             //处理进度条的事件
                             xhr.upload.addEventListener("progress", progressHandle, false);
-                            //加载完成的事件
+                           /* //加载完成的事件
                             xhr.addEventListener("load", completeHandle, false);
                             //加载出错的事件
                             xhr.addEventListener("error", failedHandle, false);
                             //加载取消的事件
                             xhr.addEventListener("abort", canceledHandle, false);
                             //开始显示进度条
-                            showProgress();
+                            showProgress();*/
                             return xhr;
                         }
                     }
                 }, 'json');
             }
         }
+        //定时器函数
+        function showProgress(){
+            $.getJSON("${ctx}/todoTask/getTodoTaskList.do?processed=0", function(result){
+               if(result<=100)
+               {
+                   $('.progress-body percentage').html((result/100).toFixed(2) + "%");
+               }
+               else{
+                   //销毁定时器
+               }
+            });
+        }
+
         var start = 0;
-        //显示进度条的函数
-        function showProgress() {
-            start = new Date().getTime();
-            $(".progress-body").css("display", "block");
-        }
-        //隐藏进度条的函数
-        function hideProgress() {
-            $("#uploadFile").val('');
-            $('.progress-body .progress-speed').html("0 M/S, 0/0M");
-            $('.progress-body percentage').html("0%");
-            $('.progress-body .progress-info').html("请选择文件并点击上传文件按钮");
-            //$(".progress-body").css("display", "none");
-        }
         //进度条更新
         function progressHandle(e) {
             $('.progress-body progress').attr({value: e.loaded, max: e.total});
@@ -90,13 +108,13 @@
             if(time == 0){
                 time = 1;
             }
-            $('.progress-body .progress-speed').html(((e.loaded / 1024) / 1024 / time).toFixed(2) + "M/S, " + ((e.loaded / 1024) / 1024).toFixed(2) + "/" + ((e.total / 1024) / 1024).toFixed(2) + " MB. ");
+            //$('.progress-body .progress-speed').html(((e.loaded / 1024) / 1024 / time).toFixed(2) + "M/S, " + ((e.loaded / 1024) / 1024).toFixed(2) + "/" + ((e.total / 1024) / 1024).toFixed(2) + " MB. ");
             $('.progress-body percentage').html(percent.toFixed(2) + "%");
-            if (percent == 100) {
+            /*if (percent == 100) {
                 $('.progress-body .progress-info').html("上传完成,后台正在处理...");
             } else {
                 $('.progress-body .progress-info').html("文件上传中...");
-            }
+            }*/
         };
         //上传完成处理函数
         function completeHandle(e) {
@@ -121,7 +139,7 @@
     <div id="msg"></div>
 </form>
 <!--进度条部分(默认隐藏)-->
-<div style="display: none;" class="progress-body">
+<!--<div style="display: none;" class="progress-body">
     <div>
         <span style="width: 100px; display: inline-block; text-align: right">上传进度：</span>
         <progress></progress><percentage>0%</percentage>
@@ -134,6 +152,36 @@
         <span style="width: 100px; display: inline-block; text-align: right">上传状态：</span>
         <span style="margin-bottom: 10px; margin-left: 30px; width: 300px;" class="progress-info">请选择文件并点击上传文件按钮</span>
     </div>
-</div>
+</div>-->
+
+    <br/>
+<table>
+    <tr>
+        <td>id</td>
+        <td>文件名</td>
+        <td>下载状态</td>
+        <td>描述</td>
+    </tr>
+    <tr  th:each="file,WxFile : ${list}">
+        <td th:text="${file.id}"></td>
+        <td th:text="${file.fileName}"></td>
+       <!-- <td th:text="${file.downStauts}"> <div>123456789</div></td>-->
+
+        <td> <!--判断条件不能加结束标记，加了就识别不了判断条件,-->
+            <div th:if=" ${file.downStauts} eq '100'">
+               <div >
+                   <progress ></progress><percentage >100%</percentage>
+                 </div>
+            </div>
+            <div th:if=" ${file.downStauts} lt '100'" class="progress-body">
+                <div >
+                     <progress value="0.5"></progress><percentage ><span th:text="${file.downStauts}" />%</percentage>
+                </div>
+            </div>
+        </td>
+        <td th:text="${file.describe}"></td>
+    </tr>
+</table>
+
 </body>
 </html>
